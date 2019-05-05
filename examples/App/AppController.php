@@ -6,6 +6,7 @@ use Fesor\RequestObject\Examples\Request\ContextDependingRequest;
 use Fesor\RequestObject\Examples\Request\ExtendedRegisterUserRequest;
 use Fesor\RequestObject\Examples\Request\RegisterUserRequest;
 use Fesor\RequestObject\Examples\Request\ResponseProvidingRequest;
+use Fesor\RequestObject\Examples\Request\ResponseWithCustomErrorProvider;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -41,5 +42,9 @@ class AppController extends Controller
     public function validationResultsAction(RegisterUserRequest $request, ConstraintViolationList $errors)
     {
         return new Response(count($errors), 200, ['Content-Type' => 'text/plain']);
+    }
+
+    public function customErrorProvider(ResponseWithCustomErrorProvider $request){
+        return new Response('', 200);
     }
 }

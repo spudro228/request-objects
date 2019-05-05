@@ -2,3 +2,5 @@ vendor
 cache
 logs
 composer.lock
+/.idea/
+/phpunit.xml

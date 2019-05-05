@@ -21,3 +21,7 @@ no_custom_request:
 validation_results:
     path:       /validation_results
     defaults:  {_controller: 'app_controller:validationResultsAction'}
+
+error_response_with_custom_error_provider:
+    path:       /error_response_with_custom_error_provider
+    defaults:  {_controller: 'app_controller:customErrorProvider'}

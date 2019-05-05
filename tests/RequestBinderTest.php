@@ -3,11 +3,14 @@
 namespace Tests\Fesor\RequestObject;
 
 use Fesor\RequestObject;
+use Fesor\RequestObject\DefaultErrorResponseProvider;
 use Fesor\RequestObject\Examples\Request\CustomizedPayloadRequest;
 use Fesor\RequestObject\Examples\Request\RegisterUserRequest;
 use Fesor\RequestObject\Examples\Request\ResponseProvidingRequest;
+use Fesor\RequestObject\PayloadResolver;
 use Fesor\RequestObject\RequestObjectBinder;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Validator\ConstraintViolation;
@@ -58,7 +61,8 @@ class RequestBinderTest extends TestCase
 
     public function testRequestObjectBindingOnInvokableObject()
     {
-        $action = new class() {
+        $action = new class()
+        {
             public function __invoke(RegisterUserRequest $requestObj)
             {
             }
@@ -131,6 +135,25 @@ class RequestBinderTest extends TestCase
         (new RequestObjectBinder($this->payloadResolver, $this->validator))
             ->bind($this->request, function (CustomizedPayloadRequest $requestObj) {
             });
+    }
+
+    public function testBindDefaultErrorResponseProvider()
+    {
+        $request = Request::create('/');
+
+        $payloadResolver = $this->getMockForAbstractClass(PayloadResolver::class);
+        $payloadResolver->method('resolvePayload')->willReturn([]);
+
+        $validator = $this->getMockForAbstractClass(ValidatorInterface::class);
+        $validator->method('validate')->willReturn(new ConstraintViolationList([
+            new ConstraintViolation('test', 'test', [], [], 'test', null),
+        ]));
+
+        $requestObjectBinder = new RequestObjectBinder($payloadResolver, $validator, new DefaultErrorResponseProvider());
+        $response = $requestObjectBinder->bind($request, function (RegisterUserRequest $registerUserRequest) {
+        });
+
+        self::assertInstanceOf(JsonResponse::class, $response);
     }
 
     private function validRequest()

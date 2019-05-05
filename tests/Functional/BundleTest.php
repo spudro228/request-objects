@@ -2,9 +2,10 @@
 
 namespace Tests\Fesor\RequestObject\Functional;
 
+use Fesor\RequestObject\ErrorResponseProvider;
 use Fesor\RequestObject\Examples\App;
-use Fesor\RequestObject\InvalidRequestPayloadException;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
 class BundleTest extends TestCase
@@ -36,9 +37,6 @@ class BundleTest extends TestCase
         self::assertEquals($payload, json_decode($response->getContent(), true));
     }
 
-    /**
-     * @expectedException \Fesor\RequestObject\InvalidRequestPayloadException
-     */
     public function testInvalidRequestData()
     {
         $payload = [
@@ -48,12 +46,12 @@ class BundleTest extends TestCase
             'last_name' => 'Doe',
         ];
 
-        $this->kernel->handle(Request::create('/users', 'POST', $payload));
+        $response = $this->kernel->handle(Request::create('/users', 'POST', $payload));
+        static::assertEquals(400, $response->getStatusCode());
     }
 
     public function testExtendedRequestObject()
     {
-        $this->expectException(InvalidRequestPayloadException::class);
         $payload = [
             'email' => 'invalid',
             'password' => 'example',
@@ -64,7 +62,7 @@ class BundleTest extends TestCase
         $response = $this->kernel->handle(Request::create('/users_extended', 'POST', $payload));
         $responseBody = json_decode($response->getContent(), true);
         self::assertEquals(400, $response->getStatusCode());
-        self::assertCount(1, $responseBody['errors']);
+        self::assertCount(2, $responseBody['errors']);
     }
 
     public function testErrorResponseProvidingRequest()
@@ -81,14 +79,29 @@ class BundleTest extends TestCase
      */
     public function testContextDependingRequest($payload, $isPayloadValid)
     {
+        $response = $this->kernel->handle(Request::create('/context_depending', 'POST', $payload));
+
         if (!$isPayloadValid) {
-            $this->expectException(InvalidRequestPayloadException::class);
+            self::assertEquals(400, $response->getStatusCode());
         }
 
-        $response = $this->kernel->handle(Request::create('/context_depending', 'POST', $payload));
         if ($isPayloadValid) {
             self::assertEquals(201, $response->getStatusCode());
         }
+    }
+
+    public function testCustomErrorResponseProvider(): void
+    {
+        $errorProvider = $this->getMockForAbstractClass(ErrorResponseProvider::class);
+        $errorProvider
+            ->method('getErrorResponse')
+            ->willReturn(new JsonResponse([]));
+
+        $response = $this->kernel->handle(Request::create('/error_response_with_custom_error_provider', 'POST', []));
+
+        $responseBody = json_decode($response->getContent(), true);
+        self::assertEquals(400, $response->getStatusCode());
+        self::assertCount(1, $responseBody['errors']);
     }
 
     public function requestPayloadContextsProvider()

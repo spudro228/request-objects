@@ -19,3 +19,6 @@ services:
   app_controller:
     class: 'Fesor\RequestObject\Examples\App\AppController'
     public: true
+
+request_object:
+  error_response_provider: Fesor\RequestObject\DefaultErrorResponseProvider

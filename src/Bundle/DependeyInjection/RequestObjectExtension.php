@@ -3,6 +3,8 @@
 namespace Fesor\RequestObject\Bundle\DependeyInjection;
 
 use Fesor\RequestObject\Bundle\RequestObjectEventListener;
+use Fesor\RequestObject\DefaultErrorResponseProvider;
+use Fesor\RequestObject\ErrorResponseProvider;
 use Fesor\RequestObject\HttpPayloadResolver;
 use Fesor\RequestObject\PayloadResolver;
 use Fesor\RequestObject\RequestObjectBinder;
@@ -16,6 +18,7 @@ class RequestObjectExtension extends Extension
 {
     public function load(array $configs, ContainerBuilder $container)
     {
+        $this->registerErrorResponseProvider($configs, $container);
         $this->registerPayloadResolver($container);
         $this->registerRequestBinder($container);
         $this->registerEventListener($container);
@@ -47,11 +50,26 @@ class RequestObjectExtension extends Extension
         $definition = new Definition(RequestObjectEventListener::class, [
             new Reference('request_object.request_binder'),
         ]);
-        $definition->addTag('kernel.event_listener', array(
+        $definition->addTag('kernel.event_listener', [
             'event' => 'kernel.controller',
             'method' => 'onKernelController',
-        ));
+        ]);
 
         $container->setDefinition('request_object.event_listener.controller', $definition);
+    }
+
+    private function registerErrorResponseProvider(array $configs, ContainerBuilder $container)
+    {
+        $defaultErrorProvider = @$configs[0]['error_response_provider'];
+        if ($defaultErrorProvider !== null) {
+            $definition = new Definition($defaultErrorProvider);
+            $definition->setAutowired(true);
+            $definition->setPublic(false);
+
+
+            $container->setDefinition('request_object.error_provider.default', $definition);
+            $container->setAlias(DefaultErrorResponseProvider::class, 'request_object.error_provider.default');
+            $container->setAlias(ErrorResponseProvider::class, DefaultErrorResponseProvider::class);
+        }
     }
 }
